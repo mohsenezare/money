@@ -5,6 +5,9 @@ import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
@@ -23,6 +26,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.security.crypto.EncryptedSharedPreferences
@@ -69,6 +73,7 @@ class MainActivity : AppCompatActivity() {
     private var reconnectTask: Runnable? = null
 
     private val logicalSymbols = listOf("XAUUSD", "EURUSD", "BTCUSD")
+    private val officialTerminalUrl = "https://my.litefinance.org/trading"
     private val permissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* Alerts still display in-page when notification permission is denied. */ }
@@ -102,7 +107,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun apiKey(): String = preferences?.getString("api_key", null).orEmpty().trim()
     private fun accountId(): String = preferences?.getString("account_id", null).orEmpty().trim()
-    private fun isConfigured(): Boolean = apiKey().isNotEmpty() && accountId().isNotEmpty()
+    private fun isConfigured(): Boolean =
+        preferences?.getBoolean("api_enabled", false) == true &&
+            apiKey().isNotEmpty() && accountId().isNotEmpty()
 
     private fun brokerSymbol(logical: String): String =
         preferences?.getString("symbol_$logical", logical)?.trim().takeUnless { it.isNullOrBlank() } ?: logical
@@ -147,11 +154,12 @@ class MainActivity : AppCompatActivity() {
                 pageReady = true
                 updateBrokerSymbols()
                 if (isConfigured()) {
+                    callJs("onAppMode", "api")
                     refreshAll()
                     connectWebSocket()
                 } else {
-                    callJs("onConnectionState", "تنظیم نشده")
-                    showConfigDialog()
+                    callJs("onAppMode", "free")
+                    callJs("onConnectionState", "وب‌ترمینال رایگان")
                 }
             }
         }
@@ -161,6 +169,12 @@ class MainActivity : AppCompatActivity() {
     inner class Bridge {
         @android.webkit.JavascriptInterface
         fun configure() = runOnUiThread { showConfigDialog() }
+
+        @android.webkit.JavascriptInterface
+        fun openLiteFinance() = runOnUiThread { openOfficialWebTerminal() }
+
+        @android.webkit.JavascriptInterface
+        fun useFreeMode() = runOnUiThread { activateFreeMode() }
 
         @android.webkit.JavascriptInterface
         fun selectSymbol(symbol: String) = runOnUiThread {
@@ -187,6 +201,43 @@ class MainActivity : AppCompatActivity() {
                 if (symbol in logicalSymbols) showNotification("RSI - $symbol", "عبور RSI از $level")
             }
         }
+    }
+
+    /**
+     * Open the official broker site in the user's browser session, not our own
+     * JavaScript-enabled WebView. This isolates LiteFinance credentials and
+     * cookies from AndroidBridge / analytics / JavaScript in Market Analyzer.
+     */
+    private fun openOfficialWebTerminal() {
+        val uri = Uri.parse(officialTerminalUrl)
+        if (uri.scheme != "https" || uri.host != "my.litefinance.org") {
+            Toast.makeText(this, "آدرس وب‌ترمینال معتبر نیست", Toast.LENGTH_LONG).show()
+            return
+        }
+        try {
+            CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(this, uri)
+        } catch (_: ActivityNotFoundException) {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, uri)
+                    .addCategory(Intent.CATEGORY_BROWSABLE))
+            } catch (_: Exception) {
+                Toast.makeText(this, "مرورگر مطمئن روی گوشی پیدا نشد", Toast.LENGTH_LONG).show()
+            }
+        } catch (_: Exception) {
+            Toast.makeText(this, "امکان باز کردن وب‌ترمینال وجود ندارد", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun activateFreeMode() {
+        preferences?.edit()?.putBoolean("api_enabled", false)?.apply()
+        socketGeneration++
+        historyGeneration++
+        reconnectTask?.let { handler.removeCallbacks(it) }
+        reconnectTask = null
+        socket?.close(1000, "Switch to official LiteFinance web terminal")
+        socket = null
+        callJs("onAppMode", "free")
+        callJs("onConnectionState", "وب‌ترمینال رایگان")
     }
 
     private fun showConfigDialog() {
@@ -229,6 +280,7 @@ class MainActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
                 preferences?.edit()
+                    ?.putBoolean("api_enabled", true)
                     ?.putString("api_key", newKey)
                     ?.putString("account_id", newAccount)
                     ?.putString("symbol_XAUUSD", gold.text.toString().trim().ifEmpty { "XAUUSD" })
@@ -236,6 +288,7 @@ class MainActivity : AppCompatActivity() {
                     ?.putString("symbol_BTCUSD", btc.text.toString().trim().ifEmpty { "BTCUSD" })
                     ?.apply()
                 updateBrokerSymbols()
+                callJs("onAppMode", "api")
                 reconnectCount = 0
                 connectWebSocket()
                 refreshAll()
