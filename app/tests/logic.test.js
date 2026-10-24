@@ -25,4 +25,13 @@ assert.equal(findTrendSegments(bars).length,0);
 assert.equal(pivots(bars).highs.length,0);
 assert.equal(isWeekendMarketClosed("EURUSD",new Date("2026-10-24T15:00:00Z")),true);
 assert.equal(isWeekendMarketClosed("BTCUSD",new Date("2026-10-24T15:00:00Z")),false);
+// Free biquote response: ISO openTime, newest-first bars, and still-open M1 bar.
+const publicBars = [
+  {openTime:"2026-10-24T10:01:00Z",open:10,high:11,low:9,close:10.5,isOpen:true},
+  {openTime:"2026-10-24T10:00:00Z",open:9,high:10.5,low:8.5,close:10,isOpen:false}
+];
+const normalizedPublic = normalizeHistory({symbol:"XAUUSD",interval:"1m",bars:publicBars});
+assert.equal(normalizedPublic.length,2);
+assert.equal(normalizedPublic[0].time,Date.parse(publicBars[1].openTime)/1000);
+assert.equal(normalizedPublic[1].close,10.5);
 console.log("Market Analyzer indicator tests passed");
