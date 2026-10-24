@@ -1,0 +1,33 @@
+:root {
+  --bg:#0B0E11; --surface:#151A21; --text:#E8EAED;
+  --muted:#8E99A6; --accent:#2E7DF7; --danger:#FF4757;
+  --success:#2ED573; --border:rgba(255,255,255,.08);
+  --radius:16px; --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+body.light{--bg:#F6F8FB;--surface:#FFFFFF;--text:#17212E;--muted:#647384;--border:rgba(0,0,0,.09)}
+#app{display:flex;flex-direction:column;height:100%;height:100dvh}
+.top-bar{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);min-height:64px}
+.symbol-selector select{background:var(--bg);border:0;color:var(--text);font-size:14px;font-weight:600;padding:8px 5px;border-radius:10px;outline:none;max-width:105px}
+.status-group{display:flex;flex:1;min-width:0;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap}
+.connection-status{font-size:10px;color:var(--muted);font-weight:600;white-space:nowrap}
+.market-status{font-family:var(--font);font-weight:800;font-size:11px;letter-spacing:.4px;color:var(--muted);white-space:nowrap}
+.market-status.live{color:var(--success)}
+.market-status.closed{color:var(--danger)}
+.last-price{direction:ltr;font-weight:600;font-size:11px;color:var(--text);white-space:nowrap}
+.icon-btn{background:none;border:0;color:var(--text);font-size:20px;cursor:pointer;padding:4px}
+.charts-container{flex:1;display:flex;flex-direction:column;min-height:0;direction:ltr}
+.chart-pane{position:relative;width:100%;min-height:0}
+.price-pane{flex:3}
+.indicator-pane{flex:1;border-top:1px solid var(--border)}
+.chart-pane.off{display:none}
+.settings-panel{position:absolute;top:0;left:0;right:0;bottom:0;background:var(--surface);padding:24px;z-index:100;display:flex;flex-direction:column;gap:16px;border-radius:var(--radius) var(--radius) 0 0;transition:transform .3s cubic-bezier(.25,.8,.25,1);overflow-y:auto}
+.settings-panel.hidden{transform:translateY(100%);pointer-events:none}
+.settings-panel label{display:flex;justify-content:space-between;align-items:center;font-size:15px;padding:12px 0;border-bottom:1px solid var(--border)}
+.settings-panel button{padding:14px;border:0;border-radius:12px;background:var(--accent);color:white;font-size:15px;font-weight:600;cursor:pointer}
+.settings-panel #closeSettings{margin-top:auto}
+.alert-log{position:fixed;bottom:16px;left:16px;right:16px;max-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;z-index:200;pointer-events:none}
+.alert-item{background:rgba(255,71,87,.93);color:white;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;animation:slideUp .3s ease-out}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
