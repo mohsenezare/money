@@ -1,0 +1,38 @@
+name: Android APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Vendor pinned charts locally
+        run: |
+          curl --fail --location --retry 3 --retry-delay 2 \
+            "https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js" \
+            -o app/src/main/assets/lightweight-charts.js
+          test -s app/src/main/assets/lightweight-charts.js
+      - name: Check JavaScript syntax
+        run: node --check app/src/main/assets/app.js
+      - name: Build debug APK
+        run: gradle --no-daemon :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MarketAnalyzer-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
