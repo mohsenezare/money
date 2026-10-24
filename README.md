@@ -1,23 +1,30 @@
 # Market Analyzer (Android)
 
-Native Android Kotlin + WebView charts. This is a fresh project based on the code provided in the conversation.
+## Free LiteFinance web-terminal mode (default)
 
-- Market data provider: [metatraderapi.net](https://www.metatraderapi.net/en/), an **independent paid third-party** service.
-- Configure API key and connected account ID **inside the Android app** after installation; do not put credentials in this public GitHub repository.
-- Broker symbols can have suffixes: enter your broker's exact names (e.g. XAUUSDm) in account settings.
-- Candlestick history: /PriceHistory, real-time: /v1/stream QUOTE and CANDLE events.
-- Technical indicators: RSI(14), MACD(12,26,9), pivot trend lines. Alerts are based on fully closed candles only.
-- The market status is conservative: CLOSED only for explicit server flags or known weekend FX/gold closure; stale data alone never proves a market is closed.
-- No trades are sent by this application.
+**Version 1.2.0** starts in a free LiteFinance mode. Tap **LiteFinance ↗** or **ورود به وب‌ترمینال لایت‌فاینانس** to open the [official LiteFinance web terminal](https://my.litefinance.org/trading) in a browser Custom Tab on the Android phone.
 
-## Build
-GitHub Actions **Android APK** workflow builds debug APK on push or manually through workflow_dispatch; see Actions -> Android APK -> latest successful run -> Artifacts.
-The build downloads the exact Lightweight Charts 4.2.0 script into local assets, so it is available offline after installation.
+- This works **entirely on a phone**. MetaTrader 5 does not need to be installed on a Windows PC.
+- Sign in **only on the official LiteFinance domain**, with your existing LiteFinance profile, then select the MT5 account you already use.
+- No paid MetaTrader API account or API key is required **for using the broker's own web terminal**.
+- LiteFinance's web terminal itself supplies broker prices and its own charts/technical indicators.
+- The web terminal **does not publish a supported feed** to this independent app; therefore the custom RSI/MACD/trend detection and Android alert engine in Market Analyzer are **not connected** to live LiteFinance quotes in free mode. Those features remain available only with a separately authorized market data API.
+- **No LiteFinance credentials or cookies are handled or saved by this app.** Authentication takes place in the phone's browser environment via Chrome Custom Tabs. The native app only opens a constant HTTPS URL with a checked host. No trading instructions are submitted by Market Analyzer.
+- Free mode makes no calls to metatraderapi.net. To enable a paid external data source deliberately, use Settings -> API (optional). Settings also allow switching back to the free broker web terminal.
 
-Local build (requires Android SDK 35, Java 17, Gradle 8.7): `gradle :app:assembleDebug`.
+## Separate API-backed custom charts (optional)
 
-## Secrets
-No API key or account id is committed or baked into the APK. They are stored on-device in encrypted preferences via Android Keystore. Because API calls originate on-device, a determined attacker with physical compromise may still extract runtime credentials: for stronger security, use a backend proxy that holds the key.
+The independent app still supports external MetaTrader API connectivity when explicitly enabled by the user. It is **not a free direct LiteFinance/MT5 connection**. API credentials, if voluntarily entered, stay in Android encrypted preferences. Never commit these to GitHub.
 
-## Limitations
-The provider requires a configured active account and may use broker-specific symbol suffixes. The connection and quote handling need live verification against that specific account. Price history/tick availability is broker dependent, and no data is fabricated when the feed is missing.
+- Charts: [Lightweight Charts](https://tradingview.github.io/lightweight-charts/) 4.2.0 loaded locally from Android assets.
+- History from `PriceHistory` M1 timeframe (`1`), live quotes and candles from WebSocket.
+- Custom indicators: RSI(14), MACD(12,26,9), confirmed pivot support/resistance, closed-candle alerts.
+- Broker-specific symbol suffixes can be configured.
+
+## Build APK
+
+In GitHub: Actions -> **Android APK** -> the latest successful run -> **MarketAnalyzer-debug-apk** artifact.
+
+Workflow uses JDK 17, Android SDK 35, Gradle 8.7, and runs JavaScript tests + Android debug build.
+
+The APK is intended for installation on Android 7.0+.
