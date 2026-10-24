@@ -31,3 +31,28 @@ body.light{--bg:#F6F8FB;--surface:#FFFFFF;--text:#17212E;--muted:#647384;--borde
 .alert-log{position:fixed;bottom:16px;left:16px;right:16px;max-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;z-index:200;pointer-events:none}
 .alert-item{background:rgba(255,71,87,.93);color:white;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;animation:slideUp .3s ease-out}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* Mobile-only free LiteFinance web-terminal entry. No remote page is loaded in WebView. */
+.terminal-btn{border:1px solid rgba(46,213,115,.35);border-radius:9px;padding:8px 9px;
+  color:#2ED573;background:rgba(46,213,115,.09);font-size:11px;font-weight:700;
+  white-space:nowrap;cursor:pointer}
+.charts-container{position:relative}
+.free-mode-panel{position:absolute;inset:0;z-index:10;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;
+  direction:rtl}
+.free-mode-panel.hidden{display:none}
+.free-content{max-width:450px;width:100%;display:flex;flex-direction:column;
+  align-items:center;gap:17px;text-align:center}
+.free-logo{display:flex;align-items:center;justify-content:center;width:58px;height:58px;
+  border-radius:18px;background:rgba(46,213,115,.12);color:#2ED573;
+  font-size:26px;font-weight:800;letter-spacing:-2px}
+.free-content h1{font-size:21px;line-height:1.6}
+.free-content p{font-size:14px;color:var(--muted);line-height:1.8}
+.free-content .free-note{font-size:12px}
+.free-open{font-family:inherit;font-size:15px;font-weight:700;border:0;
+  border-radius:13px;width:100%;padding:15px 12px;cursor:pointer;
+  background:var(--success);color:#0B0E11}
+.free-advanced{font-family:inherit;background:transparent;border:1px solid var(--border);
+  border-radius:10px;color:var(--muted);padding:10px 15px;font-size:12px;cursor:pointer}
+body.free-mode .symbol-selector,body.free-mode #refreshBtn,body.free-mode .last-price{display:none}
+body.free-mode .connection-status{color:var(--success)!important}
