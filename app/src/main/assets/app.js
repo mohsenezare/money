@@ -11,6 +11,7 @@ let historyLoaded = false, pendingFrames = [], lastTickAt = 0, connectionState =
 let explicitClosed = {}, lastQuoted = {}, alreadyAlerted = new Set();
 let lastRedraw = 0, redrawTimer = null;
 let dark = true;
+let appMode = "free";
 
 function timeSeconds(raw) {
     if (raw == null || raw === "") return NaN;
@@ -404,6 +405,10 @@ function isWeekendMarketClosed(symbol,now=new Date()) {
 function updateMarketStatus() {
     const el=document.getElementById("marketStatus");
     if(!el) return;
+    if (appMode === "free") {
+        el.textContent="WEB"; el.className="market-status";
+        return;
+    }
     const tick=lastQuoted[currentSymbol];
     const hasRecentTick=tick && (Date.now()/1000-tick.t)<100;
     const closedByFeed=explicitClosed[currentSymbol]===true;
@@ -434,8 +439,33 @@ function showAlertLog(message) {
     setTimeout(()=>item.remove(),4000);
 }
 
+function onAppMode(mode) {
+    appMode = mode === "api" ? "api" : "free";
+    if (typeof document === "undefined") return;
+    document.body.classList.toggle("free-mode", appMode === "free");
+    document.getElementById("freeModePanel")?.classList.toggle("hidden",appMode !== "free");
+    if (appMode === "free") {
+        candles=[]; rsiValues=[]; historyLoaded=false;pendingFrames=[];
+        lastQuoted={}; explicitClosed={}; alreadyAlerted.clear();
+        if(priceSeries) rerender(true);
+        const price = document.getElementById("lastPrice");
+        if (price) price.textContent="";
+        onConnectionState("وب‌ترمینال رایگان");
+    } else {
+        updateMarketStatus();
+    }
+}
+
 function requestRefresh() {
+    if (appMode === "free") {
+        showAlertLog("در حالت رایگان قیمت‌ها را در وب‌ترمینال رسمی لایت‌فاینانس ببینید.");
+        return;
+    }
     window.AndroidBridge?.refresh();
+}
+
+function openOfficialLiteFinance() {
+    window.AndroidBridge?.openLiteFinance();
 }
 function setupEvents() {
     initCharts();
@@ -450,6 +480,15 @@ function setupEvents() {
         window.AndroidBridge?.configure();
     });
     document.getElementById("refreshBtn").addEventListener("click",requestRefresh);
+    document.getElementById("terminalBtn").addEventListener("click",openOfficialLiteFinance);
+    document.getElementById("openTerminalMain").addEventListener("click",openOfficialLiteFinance);
+    document.getElementById("openApiSettings").addEventListener("click",()=>{
+        window.AndroidBridge?.configure();
+    });
+    document.getElementById("freeModeSettings").addEventListener("click",()=>{
+        document.getElementById("settingsPanel").classList.add("hidden");
+        window.AndroidBridge?.useFreeMode();
+    });
     document.getElementById("toggleTrendLines").addEventListener("change",()=>drawLines());
     document.getElementById("toggleRsi").addEventListener("change",e=>{
         document.getElementById("rsiChart").classList.toggle("off",!e.target.checked);
@@ -465,13 +504,13 @@ function setupEvents() {
         start=null;
     },{passive:true});
     setInterval(updateMarketStatus,15000);
-    updateMarketStatus();
+    onAppMode("free");
 }
 
 if(typeof document!=="undefined") document.addEventListener("DOMContentLoaded",setupEvents);
 if(typeof window!=="undefined") {
     Object.assign(window,{onMarketData,onMarketHistory,onHistoryError,
-        onConnectionState,onRefreshStarted,onBrokerSymbols});
+        onConnectionState,onRefreshStarted,onBrokerSymbols,onAppMode});
 }
 if(typeof module!=="undefined"&&module.exports) module.exports={
     timeSeconds,normalizeCandle,normalizeHistory,calculateRSI,calculateMACD,pivots,findTrendSegments,isWeekendMarketClosed
