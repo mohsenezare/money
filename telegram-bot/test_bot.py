@@ -56,7 +56,7 @@ class AnalyticsTests(unittest.TestCase):
         message = bot.describe_analysis("XAUUSD", "1m", data)
         self.assertIn("RSI(14)", message)
         self.assertIn("MACD", message)
-        self.assertIn("نه LiteFinance", message)
+        self.assertIn("قیمت LiteFinance نیست", message)
 
     def test_source_does_not_leak_owner_info(self):
         with tempfile.TemporaryDirectory() as tmp:
