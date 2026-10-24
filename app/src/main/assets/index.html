@@ -22,6 +22,7 @@
       <div class="market-status" id="marketStatus">NO DATA</div>
       <div class="last-price" id="lastPrice"></div>
     </div>
+    <button class="terminal-btn" id="terminalBtn" aria-label="باز کردن وب‌ترمینال رسمی LiteFinance">LiteFinance ↗</button>
     <button class="icon-btn" id="refreshBtn" aria-label="بروزرسانی">↻</button>
     <button class="icon-btn" id="settingsBtn" aria-label="تنظیمات">⚙️</button>
   </header>
@@ -29,6 +30,17 @@
     <div id="priceChart" class="chart-pane price-pane"></div>
     <div id="rsiChart" class="chart-pane indicator-pane"></div>
     <div id="macdChart" class="chart-pane indicator-pane"></div>
+    <section class="free-mode-panel" id="freeModePanel" aria-label="حالت رایگان لایت فاینانس">
+      <div class="free-content">
+        <div class="free-logo">LF</div>
+        <h1>ترمینال رسمی LiteFinance</h1>
+        <p>استفاده رایگان روی گوشی، با همان حساب متاتریدر ۵ شما. برای ورود، صفحهٔ رسمی بروکر در مرورگر امن گوشی باز می‌شود.</p>
+        <button class="free-open" id="openTerminalMain">ورود به وب‌ترمینال لایت‌فاینانس ↗</button>
+        <p class="free-note">رمز عبور در Market Analyzer وارد یا ذخیره نمی‌شود.</p>
+        <p class="free-note">نمودارها و اندیکاتورهای وب‌ترمینال در خود سایت لایت‌فاینانس هستند؛ داده‌های آن به نمودارهای اختصاصی این برنامه منتقل نمی‌شوند.</p>
+        <button class="free-advanced" id="openApiSettings">تنظیم API جداگانه (اختیاری)</button>
+      </div>
+    </section>
   </main>
   <aside id="settingsPanel" class="settings-panel hidden">
     <h3>تنظیمات</h3>
@@ -36,7 +48,8 @@
     <label>نمایش RSI <input type="checkbox" id="toggleRsi" checked></label>
     <label>نمایش MACD <input type="checkbox" id="toggleMacd" checked></label>
     <label>حالت تاریک <input type="checkbox" id="toggleDark" checked></label>
-    <button id="connectionSettings">تنظیم حساب و نمادها</button>
+    <button id="freeModeSettings">حالت رایگان LiteFinance</button>
+    <button id="connectionSettings">تنظیم API جداگانه (اختیاری)</button>
     <button id="closeSettings">بستن</button>
   </aside>
   <div id="alertLog" class="alert-log"></div>
