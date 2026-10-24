@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Market Analyzer</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="lightweight-charts.js"></script>
+</head>
+<body>
+<div id="app">
+  <header class="top-bar" id="topBar">
+    <div class="symbol-selector">
+      <select id="symbolSelect" aria-label="انتخاب نماد">
+        <option value="XAUUSD">XAU/USD</option>
+        <option value="EURUSD">EUR/USD</option>
+        <option value="BTCUSD">BTC/USD</option>
+      </select>
+    </div>
+    <div class="status-group">
+      <div class="connection-status" id="connectionStatus">در حال اتصال...</div>
+      <div class="market-status" id="marketStatus">NO DATA</div>
+      <div class="last-price" id="lastPrice"></div>
+    </div>
+    <button class="icon-btn" id="refreshBtn" aria-label="بروزرسانی">↻</button>
+    <button class="icon-btn" id="settingsBtn" aria-label="تنظیمات">⚙️</button>
+  </header>
+  <main class="charts-container">
+    <div id="priceChart" class="chart-pane price-pane"></div>
+    <div id="rsiChart" class="chart-pane indicator-pane"></div>
+    <div id="macdChart" class="chart-pane indicator-pane"></div>
+  </main>
+  <aside id="settingsPanel" class="settings-panel hidden">
+    <h3>تنظیمات</h3>
+    <label>نمایش خطوط روند <input type="checkbox" id="toggleTrendLines" checked></label>
+    <label>نمایش RSI <input type="checkbox" id="toggleRsi" checked></label>
+    <label>نمایش MACD <input type="checkbox" id="toggleMacd" checked></label>
+    <label>حالت تاریک <input type="checkbox" id="toggleDark" checked></label>
+    <button id="connectionSettings">تنظیم حساب و نمادها</button>
+    <button id="closeSettings">بستن</button>
+  </aside>
+  <div id="alertLog" class="alert-log"></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
