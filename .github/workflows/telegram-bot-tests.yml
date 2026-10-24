@@ -1,0 +1,28 @@
+name: Telegram Bot Tests
+on:
+  push:
+    paths:
+      - 'telegram-bot/**'
+      - '.github/workflows/telegram-bot-tests.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check Python syntax
+        run: python -m compileall -q telegram-bot
+      - name: Run offline unit tests
+        run: python -m unittest discover -s telegram-bot -p 'test_*.py' -v
+      - name: Verify no bot token in repository
+        run: |
+          if grep -nE '^[[:space:]]*TOKEN[[:space:]]*=[[:space:]]*["\x27][0-9]{6,}:' telegram-bot/bot.py; then
+            echo "Hardcoded Telegram token detected"
+            exit 1
+          fi
+          echo "No hardcoded token found"
