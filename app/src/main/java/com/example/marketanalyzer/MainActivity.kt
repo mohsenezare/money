@@ -96,11 +96,6 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "خطای ذخیره امن اطلاعات حساب", Toast.LENGTH_LONG).show()
         }
         createNotificationChannel()
-        if (Build.VERSION.SDK_INT >= 33 &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-            != PackageManager.PERMISSION_GRANTED) {
-            permissionRequest.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
         webView = findViewById(R.id.webView)
         setupWebView()
     }
@@ -154,6 +149,7 @@ class MainActivity : AppCompatActivity() {
                 pageReady = true
                 updateBrokerSymbols()
                 if (isConfigured()) {
+                    requestAlertPermissionIfNeeded()
                     callJs("onAppMode", "api")
                     refreshAll()
                     connectWebSocket()
@@ -289,6 +285,7 @@ class MainActivity : AppCompatActivity() {
                     ?.apply()
                 updateBrokerSymbols()
                 callJs("onAppMode", "api")
+                requestAlertPermissionIfNeeded()
                 reconnectCount = 0
                 connectWebSocket()
                 refreshAll()
@@ -421,6 +418,14 @@ class MainActivity : AppCompatActivity() {
         }
         reconnectTask = task
         handler.postDelayed(task, seconds * 1000)
+    }
+
+    private fun requestAlertPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED) {
+            permissionRequest.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
 
     private fun createNotificationChannel() {
