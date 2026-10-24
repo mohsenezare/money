@@ -267,7 +267,7 @@ class MainActivity : AppCompatActivity() {
         val url = "https://api.metatraderapi.net/PriceHistory".toHttpUrl().newBuilder()
             .addQueryParameter("id", id)
             .addQueryParameter("symbol", actual)
-            .addQueryParameter("timeFrame", "M1")
+            .addQueryParameter("timeFrame", "1")
             .addQueryParameter("from", formatter.format(Date(now - 4L * 24 * 60 * 60 * 1000)))
             .addQueryParameter("to", formatter.format(Date(now)))
             .build()
