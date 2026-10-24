@@ -71,6 +71,15 @@ class MainActivity : AppCompatActivity() {
     private var selectedSymbol = "XAUUSD"
     private var pageReady = false
     private var reconnectTask: Runnable? = null
+    private var freeFeedTask: Runnable? = null
+    private var freePollCount = 0
+    private val freeFeedBase = "https://biquote.io/api/"
+    private val freeFeedIntervalMs = 12000L
+    private var freeFeedGeneration = 0
+    private var freeQuoteCall: Call? = null
+    private var freeHistoryCall: Call? = null
+    private val freeLastHistoryMs = mutableMapOf<String, Long>()
+    private var appInForeground = false
 
     private val logicalSymbols = listOf("XAUUSD", "EURUSD", "BTCUSD")
     private val officialTerminalUrl = "https://my.litefinance.org/trading"
@@ -149,13 +158,14 @@ class MainActivity : AppCompatActivity() {
                 pageReady = true
                 updateBrokerSymbols()
                 if (isConfigured()) {
+                    stopFreeFeed()
                     requestAlertPermissionIfNeeded()
                     callJs("onAppMode", "api")
                     refreshAll()
                     connectWebSocket()
                 } else {
                     callJs("onAppMode", "free")
-                    callJs("onConnectionState", "وب‌ترمینال رایگان")
+                    startFreeFeed()
                 }
             }
         }
@@ -176,11 +186,24 @@ class MainActivity : AppCompatActivity() {
         fun selectSymbol(symbol: String) = runOnUiThread {
             if (symbol !in logicalSymbols) return@runOnUiThread
             selectedSymbol = symbol
-            refreshAll()
+            if (isConfigured()) {
+                refreshAll()
+            } else {
+                freeLastHistoryMs.remove(symbol)
+                fetchFreeHistory(symbol)
+                fetchFreeQuote(symbol)
+            }
         }
 
         @android.webkit.JavascriptInterface
-        fun refresh() = runOnUiThread { refreshAll() }
+        fun refresh() = runOnUiThread {
+            if (isConfigured()) refreshAll()
+            else {
+                freeLastHistoryMs.remove(selectedSymbol)
+                fetchFreeHistory(selectedSymbol)
+                fetchFreeQuote(selectedSymbol)
+            }
+        }
 
         @android.webkit.JavascriptInterface
         fun onTrendBreak(symbol: String, trendType: String, count: Int) {
@@ -233,7 +256,7 @@ class MainActivity : AppCompatActivity() {
         socket?.close(1000, "Switch to official LiteFinance web terminal")
         socket = null
         callJs("onAppMode", "free")
-        callJs("onConnectionState", "وب‌ترمینال رایگان")
+        startFreeFeed()
     }
 
     private fun showConfigDialog() {
@@ -284,12 +307,141 @@ class MainActivity : AppCompatActivity() {
                     ?.putString("symbol_BTCUSD", btc.text.toString().trim().ifEmpty { "BTCUSD" })
                     ?.apply()
                 updateBrokerSymbols()
+                stopFreeFeed()
                 callJs("onAppMode", "api")
                 requestAlertPermissionIfNeeded()
                 reconnectCount = 0
                 connectWebSocket()
                 refreshAll()
             }.show()
+    }
+
+    // Public market-data fallback. Not connected to the user's LiteFinance account.
+    // Prices must be labelled as public data: broker execution quotes may differ.
+    private fun startFreeFeed() {
+        if (!pageReady || closed || !appInForeground || isConfigured()) return
+        stopFreeFeed()
+        val generation = freeFeedGeneration
+        freePollCount = 0
+        requestAlertPermissionIfNeeded()
+        callJs("onConnectionState", "دریافت داده عمومی...")
+        fetchFreeHistory(selectedSymbol)
+        fetchFreeQuote(selectedSymbol)
+        fun runSchedule() {
+            val task = Runnable {
+                if (closed || !appInForeground || isConfigured() ||
+                    generation != freeFeedGeneration) return@Runnable
+                freePollCount++
+                fetchFreeQuote(selectedSymbol)
+                if (freePollCount % 5 == 0) fetchFreeHistory(selectedSymbol)
+                runSchedule()
+            }
+            freeFeedTask = task
+            handler.postDelayed(task, freeFeedIntervalMs)
+        }
+        runSchedule()
+    }
+
+    private fun stopFreeFeed() {
+        freeFeedGeneration++
+        freeFeedTask?.let { handler.removeCallbacks(it) }
+        freeFeedTask = null
+        freeQuoteCall?.cancel()
+        freeQuoteCall = null
+        freeHistoryCall?.cancel()
+        freeHistoryCall = null
+    }
+
+    private fun fetchFreeHistory(logical: String) {
+        if (logical !in logicalSymbols || isConfigured() || !appInForeground) return
+        val generation = freeFeedGeneration
+        val requestedAt = android.os.SystemClock.elapsedRealtime()
+        // Avoid overlapping repeated history requests.
+        val recentAt = freeLastHistoryMs[logical] ?: 0L
+        if (requestedAt - recentAt < 45000L) return
+        freeLastHistoryMs[logical] = requestedAt
+        val url = (freeFeedBase + logical + "/ohlc").toHttpUrl().newBuilder()
+            .addQueryParameter("interval", "1m")
+            .addQueryParameter("limit", "400")
+            .build()
+        val request = Request.Builder().get().url(url).build()
+        freeHistoryCall?.cancel()
+        freeHistoryCall = http.newCall(request)
+        freeHistoryCall?.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                if (generation == freeFeedGeneration && !call.isCanceled() && logical == selectedSymbol) {
+                    freeLastHistoryMs.remove(logical)
+                    callJs("onHistoryError", "تاریخچه قیمت عمومی در دسترس نیست")
+                }
+            }
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (generation != freeFeedGeneration || logical != selectedSymbol || isConfigured()) return
+                    if (!response.isSuccessful) {
+                        freeLastHistoryMs.remove(logical)
+                        callJs("onHistoryError", "خطای دریافت کندل: HTTP ${response.code}")
+                        return
+                    }
+                    val raw = response.body?.string().orEmpty()
+                    try {
+                        val doc = JsonParser.parseString(raw).asJsonObject
+                        val bars = doc.getAsJsonArray("bars")
+                        if (bars == null || bars.size() == 0) {
+                            freeLastHistoryMs.remove(logical)
+                            callJs("onHistoryError", "کندل معتبر دریافت نشد")
+                            return
+                        }
+                        val envelope = gson.toJson(mapOf("symbol" to logical, "history" to raw))
+                        callJs("onMarketHistory", envelope)
+                    } catch (_: Exception) {
+                        freeLastHistoryMs.remove(logical)
+                        callJs("onHistoryError", "قالب تاریخچه معتبر نیست")
+                    }
+                }
+            }
+        })
+    }
+
+    private fun fetchFreeQuote(logical: String) {
+        if (logical !in logicalSymbols || isConfigured() || !appInForeground) return
+        val generation = freeFeedGeneration
+        val url = (freeFeedBase + logical).toHttpUrl()
+        val request = Request.Builder().get().url(url).build()
+        freeQuoteCall?.cancel()
+        freeQuoteCall = http.newCall(request)
+        freeQuoteCall?.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                if (generation == freeFeedGeneration && !call.isCanceled() && logical == selectedSymbol) {
+                    callJs("onConnectionState", "داده عمومی در دسترس نیست")
+                }
+            }
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (generation != freeFeedGeneration || logical != selectedSymbol || isConfigured()) return
+                    if (!response.isSuccessful) {
+                        callJs("onConnectionState", "خطای قیمت: HTTP ${response.code}")
+                        return
+                    }
+                    try {
+                        val quote = JsonParser.parseString(response.body?.string().orEmpty()).asJsonObject
+                        val bid = quote.get("bid")?.asDouble ?: return
+                        val ask = quote.get("ask")?.asDouble ?: return
+                        if (!bid.isFinite() || !ask.isFinite() || bid <= 0 || ask <= 0) return
+                        quote.addProperty("symbol", logical)
+                        val frame = com.google.gson.JsonObject()
+                        frame.addProperty("type", "QUOTE")
+                        frame.add("data", quote)
+                        callJs("onMarketData", gson.toJson(frame))
+                        val state = quote.get("marketState")?.asString
+                        val stale = quote.get("stale")?.asBoolean ?: false
+                        callJs("onConnectionState", if (state == "closed") "بازار بسته" else if (stale)
+                            "آخرین قیمت (غیرلحظه‌ای)" else "متصل")
+                    } catch (_: Exception) {
+                        callJs("onConnectionState", "پاسخ قیمت عمومی نامعتبر است")
+                    }
+                }
+            }
+        })
     }
 
     private fun authenticatedRequest(url: okhttp3.HttpUrl): Request =
@@ -452,8 +604,21 @@ class MainActivity : AppCompatActivity() {
             .notify((System.currentTimeMillis() and 0x7fffffff).toInt(), notification)
     }
 
+    override fun onResume() {
+        super.onResume()
+        appInForeground = true
+        if (pageReady && !isConfigured()) startFreeFeed()
+    }
+
+    override fun onPause() {
+        appInForeground = false
+        stopFreeFeed()
+        super.onPause()
+    }
+
     override fun onDestroy() {
         closed = true
+        stopFreeFeed()
         socketGeneration++
         historyGeneration++
         reconnectTask?.let { handler.removeCallbacks(it) }
