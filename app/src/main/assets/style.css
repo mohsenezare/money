@@ -54,5 +54,12 @@ body.light{--bg:#F6F8FB;--surface:#FFFFFF;--text:#17212E;--muted:#647384;--borde
   background:var(--success);color:#0B0E11}
 .free-advanced{font-family:inherit;background:transparent;border:1px solid var(--border);
   border-radius:10px;color:var(--muted);padding:10px 15px;font-size:12px;cursor:pointer}
-body.free-mode .symbol-selector,body.free-mode #refreshBtn,body.free-mode .last-price{display:none}
+body.free-mode .symbol-selector,body.free-mode #refreshBtn,body.free-mode .last-price{display:initial}
 body.free-mode .connection-status{color:var(--success)!important}
+
+.status-group{gap:4px;align-content:center}
+.data-source-label{width:100%;text-align:center;font-size:9px;font-weight:600;
+  color:var(--muted);line-height:1.2}
+.source-note{color:var(--muted);font-size:12px;line-height:1.7}
+.icon-btn.refreshing{animation:rotateRefresh .7s linear}
+@keyframes rotateRefresh{to{transform:rotate(360deg)}}
