@@ -14,9 +14,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
       - name: Install Android SDK
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+        run: |
+          echo "y" | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
@@ -27,7 +28,9 @@ jobs:
             -o app/src/main/assets/lightweight-charts.js
           test -s app/src/main/assets/lightweight-charts.js
       - name: Check JavaScript syntax
-        run: node --check app/src/main/assets/app.js
+        run: |
+          node --check app/src/main/assets/app.js
+          node app/tests/logic.test.js
       - name: Build debug APK
         run: gradle --no-daemon :app:assembleDebug
       - uses: actions/upload-artifact@v4
