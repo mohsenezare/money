@@ -18,6 +18,7 @@
       </select>
     </div>
     <div class="status-group">
+      <div class="data-source-label" id="dataSourceLabel">biquote • نه LiteFinance</div>
       <div class="connection-status" id="connectionStatus">در حال اتصال...</div>
       <div class="market-status" id="marketStatus">NO DATA</div>
       <div class="last-price" id="lastPrice"></div>
@@ -30,7 +31,7 @@
     <div id="priceChart" class="chart-pane price-pane"></div>
     <div id="rsiChart" class="chart-pane indicator-pane"></div>
     <div id="macdChart" class="chart-pane indicator-pane"></div>
-    <section class="free-mode-panel" id="freeModePanel" aria-label="حالت رایگان لایت فاینانس">
+    <section class="free-mode-panel hidden" id="freeModePanel" aria-label="حالت رایگان لایت فاینانس">
       <div class="free-content">
         <div class="free-logo">LF</div>
         <h1>ترمینال رسمی LiteFinance</h1>
@@ -44,11 +45,12 @@
   </main>
   <aside id="settingsPanel" class="settings-panel hidden">
     <h3>تنظیمات</h3>
+    <p class="source-note">داده‌های تحلیل در حالت رایگان از biquote دریافت می‌شوند، نه حساب LiteFinance. برای مشاهده قیمت بروکر، دکمه LiteFinance را بزنید.</p>
     <label>نمایش خطوط روند <input type="checkbox" id="toggleTrendLines" checked></label>
     <label>نمایش RSI <input type="checkbox" id="toggleRsi" checked></label>
     <label>نمایش MACD <input type="checkbox" id="toggleMacd" checked></label>
     <label>حالت تاریک <input type="checkbox" id="toggleDark" checked></label>
-    <button id="freeModeSettings">حالت رایگان LiteFinance</button>
+    <button id="freeModeSettings">تحلیل رایگان با قیمت عمومی (biquote)</button>
     <button id="connectionSettings">تنظیم API جداگانه (اختیاری)</button>
     <button id="closeSettings">بستن</button>
   </aside>
