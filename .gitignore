@@ -1,0 +1,9 @@
+/.gradle/
+/.idea/
+/build/
+/app/build/
+local.properties
+*.jks
+*.keystore
+*.apk
+/app/src/main/assets/lightweight-charts.js
