@@ -25,7 +25,7 @@ function timeSeconds(raw) {
 
 function normalizeCandle(data) {
     if (!data || typeof data !== "object") return null;
-    const time = timeSeconds(data.time ?? data.timeUtc ?? data.timestamp ?? data.timeMsc);
+    const time = timeSeconds(data.time ?? data.openTime ?? data.timeUtc ?? data.timestamp ?? data.timeMsc);
     const open = Number(data.open ?? data.openPrice);
     const high = Number(data.high ?? data.highPrice);
     const low = Number(data.low ?? data.lowPrice);
@@ -342,13 +342,16 @@ function processFrame(frame) {
     if(!data||Array.isArray(data)||typeof data!=="object") return;
     const logical=logicalSymbol(data.symbol);
     if(!logical) return;
+    if(typeof data.marketState==="string" && ["closed","open"].includes(data.marketState.toLowerCase())) {
+        explicitClosed[logical]=data.marketState.toLowerCase()==="closed";
+    }
     if(typeof data.marketOpen==="boolean") explicitClosed[logical]=!data.marketOpen;
     if(typeof data.marketClosed==="boolean") explicitClosed[logical]=data.marketClosed;
     if(kind==="QUOTE" || (!kind&&data.bid!=null)) {
         const bid=Number(data.bid),ask=Number(data.ask);
         if(!Number.isFinite(bid)||!Number.isFinite(ask)||bid<=0||ask<=0) return;
         const price=(bid+ask)/2;
-        const timestamp=timeSeconds(data.timeMsc??data.time??data.timestamp);
+        const timestamp=timeSeconds(data.timeMsc??data.time??data.timestamp??data.lastQuoteAt);
         const t=Number.isFinite(timestamp)?timestamp:Math.floor(Date.now()/1000);
         lastQuoted[logical]={price,t};
         if(logical===currentSymbol) {
@@ -405,12 +408,10 @@ function isWeekendMarketClosed(symbol,now=new Date()) {
 function updateMarketStatus() {
     const el=document.getElementById("marketStatus");
     if(!el) return;
-    if (appMode === "free") {
-        el.textContent="WEB"; el.className="market-status";
-        return;
-    }
+    // Both the optional subscribed MT5 API and the separate public feed carry
+    // real market data. LIVE is shown only when a recent quote was observed.
     const tick=lastQuoted[currentSymbol];
-    const hasRecentTick=tick && (Date.now()/1000-tick.t)<100;
+    const hasRecentTick=!!tick && tick.t<=Date.now()/1000+5 && (Date.now()/1000-tick.t)<100;
     const closedByFeed=explicitClosed[currentSymbol]===true;
     const closedByWeekend=isWeekendMarketClosed(currentSymbol)&&!hasRecentTick;
     const status=closedByFeed||closedByWeekend?"CLOSED":
@@ -443,24 +444,22 @@ function onAppMode(mode) {
     appMode = mode === "api" ? "api" : "free";
     if (typeof document === "undefined") return;
     document.body.classList.toggle("free-mode", appMode === "free");
-    document.getElementById("freeModePanel")?.classList.toggle("hidden",appMode !== "free");
+    document.getElementById("freeModePanel")?.classList.add("hidden");
+    const source = document.getElementById("dataSourceLabel");
+    if(source) source.textContent=appMode==="free"?"biquote • نه LiteFinance":"MetaTrader API";
     if (appMode === "free") {
         candles=[]; rsiValues=[]; historyLoaded=false;pendingFrames=[];
         lastQuoted={}; explicitClosed={}; alreadyAlerted.clear();
         if(priceSeries) rerender(true);
         const price = document.getElementById("lastPrice");
         if (price) price.textContent="";
-        onConnectionState("وب‌ترمینال رایگان");
+        onConnectionState("قیمت عمومی • در حال اتصال");
     } else {
         updateMarketStatus();
     }
 }
 
 function requestRefresh() {
-    if (appMode === "free") {
-        showAlertLog("در حالت رایگان قیمت‌ها را در وب‌ترمینال رسمی لایت‌فاینانس ببینید.");
-        return;
-    }
     window.AndroidBridge?.refresh();
 }
 
